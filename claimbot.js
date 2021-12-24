@@ -30,11 +30,12 @@ const ATOMIC_ENDPOINTS = _.shuffle([
 
 const ANIMAL_FOOD = {
 	// animal_template: food_template
-	298597: 298593, // Baby Calf consumes Milk
-	298603: 318606, // Cow       consumes Barley
-	298607: 318606, // Dairy Cow consumes Barley
-	298613: 318606, // Chick     consumes Barley
-	298614: 318606, // Chicken   consumes Barley
+	298597: 298593, // Baby Calf 	 consumes Milk
+	298599: 318606, // Calf (FeMale) consumes Barley
+	298600: 318606, // Calf (Male)	 consumes Barley
+	298607: 318606, // Dairy Cow 	 consumes Barley
+	298613: 318606, // Chick     	 consumes Barley
+	298614: 318606, // Chicken   	 consumes Barley
 };
 
 const Configs = {
