@@ -179,6 +179,11 @@ async function fetchTools(account) {
 	return _.orderBy(tools, ["template_id", "next_availability"], ["asc", "asc"]);
 }
 
+async function fetchMemberships(account) {
+	const memberships = await fetchTable("farmersworld", "memberships", "farmersworld", account, 2);
+	return _.orderBy(memberships, ["template_id", "next_availability"]);
+}
+
 async function fetchAccount(account) {
 	return await fetchTable("farmersworld", "accounts", "farmersworld", account, 1);
 }
@@ -221,6 +226,15 @@ function makeToolClaimAction(account, toolId) {
 		name: "claim",
 		authorization: [{ actor: account, permission: "active" }],
 		data: { asset_id: toolId, owner: account },
+	};
+}
+
+function makeMembershipClaimAction(account, membershipId) {
+	return {
+		account: "farmersworld",
+		name: "mbsclaim",
+		authorization: [{ actor: account, permission: "active" }],
+		data: { asset_id: membershipId, owner: account },
 	};
 }
 
@@ -469,6 +483,46 @@ async function claimCrops(account, privKey) {
 	}
 }
 
+async function claimMemberships(account, privKey) {
+	shuffleEndpoints();
+
+	const { DELAY_MIN, DELAY_MAX } = process.env;
+	const delayMin = parseFloat(DELAY_MIN) || 4;
+	const delayMax = parseFloat(DELAY_MAX) || 10;
+
+	logTask(`Claiming Memberships`);
+	console.log(`Fetching memberships for account ${cyan(account)}`);
+	const memberships = await fetchMemberships(account);
+
+	const claimables = memberships.filter(({ next_availability }) => {
+		const next = new Date(next_availability * 1e3);
+		return next.getTime() < Date.now();
+	});
+
+	console.log(`Found ${yellow(memberships.length)} memberships / ${yellow(claimables.length)} memberships ready to claim`);
+
+	if (claimables.length > 0) {
+		console.log("Claiming Memberships");
+
+		for (let i = 0; i < claimables.length; i++) {
+			const membership = claimables[i];
+
+			const delay = _.round(_.random(delayMin, delayMax, true), 2);
+
+			console.log(
+				`\tClaiming membership`,
+				`(${yellow(membership.asset_id)})`,
+				green(`${membership.name}`),
+				`(after a ${Math.round(delay)}s delay)`
+			);
+			const actions = [makeMembershipClaimAction(account, membership.asset_id)];
+
+			await waitFor(delay);
+			await transact({ account, privKeys: [privKey], actions });
+		}
+	}
+}
+
 async function useTools(account, privKey) {
 	shuffleEndpoints();
 
@@ -498,7 +552,7 @@ async function useTools(account, privKey) {
 			continue;
 		}
 
-		if (toolInfo.durability_consumed >= tool.current_durability) {
+		if (toolInfo.durability_consumed > tool.current_durability) {
 			console.log(
 				`\t${yellow("Warning")} Tool`,
 				`(${yellow(tool.asset_id)})`,
